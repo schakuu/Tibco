@@ -6,7 +6,8 @@ using System.Threading.Tasks;
 
 namespace Helper.Messaging
 {
-    class SubscribeClient
+    public class SubscribeClient : IDisposable
     {
+
     }
 }

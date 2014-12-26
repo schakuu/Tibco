@@ -7,7 +7,7 @@ using System.Xml.Linq;
 using Helper;
 using Helper.Service;
 
-using lo
+using log4net;
 
 namespace TibClient
 {
@@ -17,8 +17,9 @@ namespace TibClient
         {
 
             using (var _svcPool = new ServicePool(new XElement("test"), null))
-            using (var _publishClient = _svcPool.PublishClient) {
-
+            using (var _publishClient = _svcPool.PublishClient) 
+            {
+                _publishClient.Publish();
             }
 
 
