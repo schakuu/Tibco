@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Xml.Linq;
 
 using Helper;
@@ -17,12 +18,23 @@ namespace TibClient
         {
 
             using (var _svcPool = new ServicePool(new XElement("test"), null))
+            using (var _cde = new CountdownEvent(1))
+            using (var _subscribeClient = _svcPool.SubscribeClient)
             using (var _publishClient = _svcPool.PublishClient) 
             {
-                _publishClient.Publish();
+                _subscribeClient.SubscribeMessage("TestResponseQueue", 
+                    (_q, _m) => 
+                    {
+                        // handle response
+
+                        _cde.Signal();
+                    });
+
+                _publishClient.PublishMessage("TestRequestQueue", "TestResponseQueue", "Hi From TibClientPublisher");
+
+                // block main thread till response is received
+                _cde.Wait();
             }
-
-
 
         }
     }
