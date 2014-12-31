@@ -42,12 +42,14 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Messaging\AbsPubSubClient.cs" />
-    <Compile Include="Messaging\Client\MessagingClient.cs" />
-    <Compile Include="Messaging\Client\RabbitMQClient.cs" />
-    <Compile Include="Messaging\Client\TibcoEMSClient.cs" />
+    <Compile Include="Messaging\Client\IMessagingProvider.cs" />
+    <Compile Include="Messaging\Client\RabbitMQProvider.cs" />
+    <Compile Include="Messaging\Client\TibcoEMSProvider.cs" />
     <Compile Include="Messaging\PublishClient.cs" />
+    <Compile Include="Messaging\PubSubWrapper.cs" />
     <Compile Include="Messaging\SubscribeClient.cs" />
     <Compile Include="Messaging\SubscriptionHandle.cs" />
+    <Compile Include="ObjectFactory.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Service\ServicePool.cs" />
   </ItemGroup>

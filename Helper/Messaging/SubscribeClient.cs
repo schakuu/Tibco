@@ -7,30 +7,37 @@ using System.Xml.Linq;
 
 using log4net;
 
+using Helper.Messaging.Client;
+
 namespace Helper.Messaging
 {
+    // callback delegate
+    public delegate void CallbackDelegate(string sentToQueue, string message);
+
     public class SubscribeClient : AbsPubSubClient
     {
+        # region Public Properties
+        public IMessagingProvider MessagingProvider { get; private set; }
+        # endregion
+
         # region Constructor
         public SubscribeClient(XElement _configElement, ILog _logger)
         {
-
         }
-        # endregion
-
-        # region Public Delegate
-        public delegate void CallbackDelegate(string sentToQueue, string message);
+        public SubscribeClient(IMessagingProvider _provider, ILog _logger) 
+        {
+            MessagingProvider = _provider;
+        }
         # endregion
 
         # region Subscription Methods
-        public SubscriptionHandle SubscribeMessage(string subscribeQueue, CallbackDelegate callbaclMethod)
+        public SubscriptionHandle SubscribeMessage(string subscribeQueue, CallbackDelegate callbackMethod)
         {
-
-            return null;
+            return MessagingProvider.SubscribeMessage(subscribeQueue, callbackMethod);
         }
-
-        public void Unscribe(SubscriptionHandle handle)
+        public void Unsubscribe(SubscriptionHandle handle)
         {
+            MessagingProvider.Unsubscribe(handle);
         }
         # endregion
 

@@ -14,20 +14,19 @@ namespace Helper.Service
     public class ServicePool : IDisposable
     {
         # region Public Properties
-        public PublishClient PublishClient { get; private set; }
-        public SubscribeClient SubscribeClient { get; private set; }
+        public PubSubWrapper Wrapper { get; private set; }
         # endregion
 
         # region Constructor
         public ServicePool(XElement _configElement, ILog _logger)
         {
-
-            // init the publish client
-            PublishClient = new PublishClient(_configElement.Element("PublishClient"), _logger);
-
-            // init the subscribe client
-            SubscribeClient = new SubscribeClient(_configElement.Element("SubscribeClient"), _logger);
-
+            // init the wrapper
+            Wrapper = new PubSubWrapper(_configElement.Element("Wrapper"), _logger);
+        }
+        public ServicePool(IDictionary<string, string> _configProperties, ILog _logger)
+        {
+            // init the wrapper
+            Wrapper = new PubSubWrapper(_configProperties, _logger);
         }
         # endregion
 

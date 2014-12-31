@@ -19,8 +19,8 @@ namespace TibClient
 
             using (var _svcPool = new ServicePool(new XElement("test"), null))
             using (var _cde = new CountdownEvent(1))
-            using (var _subscribeClient = _svcPool.SubscribeClient)
-            using (var _publishClient = _svcPool.PublishClient) 
+            using (var _subscribeClient = _svcPool.Wrapper.SubscribeClient)
+            using (var _publishClient = _svcPool.Wrapper.PublishClient) 
             {
                 _subscribeClient.SubscribeMessage("TestResponseQueue", 
                     (_q, _m) => 

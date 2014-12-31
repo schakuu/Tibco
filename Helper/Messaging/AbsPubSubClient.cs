@@ -8,5 +8,11 @@ namespace Helper.Messaging
 {
     public class AbsPubSubClient : IDisposable
     {
+        # region Disposable
+        public void Dispose()
+        {
+
+        }
+        # endregion
     }
 }
