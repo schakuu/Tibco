@@ -31,15 +31,14 @@ namespace Helper.Messaging
         # endregion
 
         # region Subscription Methods
-        public SubscriptionHandle SubscribeMessage(string subscribeQueue, CallbackDelegate callbackMethod)
+        public SubscriptionHandle SubscribeMessage(string subscribeQueue, CallbackDelegate callbackMethod, string clientID = null, bool autoAck = false, int depth = 1)
         {
-            return MessagingProvider.SubscribeMessage(subscribeQueue, callbackMethod);
+            return MessagingProvider.Subscribe(subscribeQueue, callbackMethod, clientID, autoAck, depth);
         }
         public void Unsubscribe(SubscriptionHandle handle)
         {
             MessagingProvider.Unsubscribe(handle);
         }
         # endregion
-
     }
 }

@@ -28,6 +28,9 @@ namespace Helper.Messaging
                 _configElement.Attribute("class").Value,
                 _configElement);
 
+            // init the provider
+            MessagingProvider.Init();
+
             // init the publish client
             PublishClient = new PublishClient(MessagingProvider, _logger);
 
@@ -40,7 +43,10 @@ namespace Helper.Messaging
             MessagingProvider = (IMessagingProvider)ObjectFactory.Create(
                 _configProperties["assembly"],
                 _configProperties["class"],
-                _configProperties.Values.ToArray());
+                _configProperties);
+
+            // init the provider
+            MessagingProvider.Init();
 
             // init the publish client
             PublishClient = new PublishClient(MessagingProvider, _logger);

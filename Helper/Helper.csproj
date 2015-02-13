@@ -33,15 +33,22 @@
     <Reference Include="log4net">
       <HintPath>X:\log4net\X\1.2.11w\bin\net\3.5\release\log4net.dll</HintPath>
     </Reference>
+    <Reference Include="RabbitMQ.Client">
+      <HintPath>..\lib\RabbitMQ.Client.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
+    <Reference Include="TIBCO.EMS">
+      <HintPath>X:\tibcoems\X\7.0.1w_64\bin\TIBCO.EMS.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Messaging\AbsPubSubClient.cs" />
+    <Compile Include="Messaging\Client\AbsMessagingProvider.cs" />
     <Compile Include="Messaging\Client\IMessagingProvider.cs" />
     <Compile Include="Messaging\Client\RabbitMQProvider.cs" />
     <Compile Include="Messaging\Client\TibcoEMSProvider.cs" />

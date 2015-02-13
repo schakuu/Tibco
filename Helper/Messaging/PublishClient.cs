@@ -27,19 +27,21 @@ namespace Helper.Messaging
         }
         # endregion
 
-        # region Synchronous Publish Methods
-        public bool PublishMessage(string publishQueue, string replyQueue, string message)
-        {
-            return true;
-        }
-
-        # endregion
-
         # region Asynchronous Publish Methods
-        public Task<bool> PublishMessageAsync(string publishQueue, string replyQueue, string message)
+        public Task<bool> PublishAsync(string publishLocation, string replyLocation, string message, string clientID = null, bool autoAck = true, bool durable = false)
         {
-            return MessagingProvider.PublishMessage(publishQueue, replyQueue, message);
+            return PublishAsync<string>(publishLocation, replyLocation, message, clientID, autoAck, durable);
         }
+
+        public Task<bool> PublishAsync<T>(string publishLocation, string replyLocation, T payload, string clientID = null, bool autoAck = true, bool durable = false)
+        {
+            return PublishAsync<T>(publishLocation, replyLocation, new T[] { payload }, clientID, autoAck, durable);
+        }
+        public Task<bool> PublishAsync<T>(string publishLocation, string replyLocation, IEnumerable<T> payload, string clientID = null, bool autoAck = true, bool durable = false)
+        {
+            return MessagingProvider.Publish<T>(publishLocation, replyLocation, payload, clientID, autoAck, durable);
+        }
+
         # endregion
     }
 }

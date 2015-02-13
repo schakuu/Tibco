@@ -14,6 +14,7 @@ namespace Helper.Messaging.Client
     public class TibcoEMSProvider : AbsMessagingProvider
     {
         # region Private Properties
+        private static string CLIENT_ID_NAME = "CLIENT_ID";
         private string _connectionFactoryName;
         private string _server;
         private TibcoEMSLookup _lookup;
@@ -43,15 +44,13 @@ namespace Helper.Messaging.Client
         # endregion
 
         # region Publish
-        protected override Task<bool> HandlePublishMessage(string publishQueue, string replyToQueue, string message, bool autoAck = false)
+        protected override async Task<bool> HandlePublishMessage(string publishLocation, string replyToLocation, IEnumerable<string> messages, string clientID = null, bool autoAck = true, bool durable = false, int priority = 4, long timeToLive = 0)
         {
-
-            var _taskSource = new TaskCompletionSource<bool>();
-            var _task = _taskSource.Task;
-
             SessionMode _ackMode = autoAck ? SessionMode.AutoAcknowledge : SessionMode.ExplicitClientAcknowledge;
+            MessageDeliveryMode _deliveryMode = MessageDeliveryMode.ReliableDelivery;
+            int _priority = 4; // lowest is 0, highest is 9. 0-4 is normal priority, 5-9 expedited priority
 
-            Task.Factory.StartNew(() =>
+            Task<bool> _task = Task<bool>.Factory.StartNew(() =>
             {
                 try
                 {
@@ -59,48 +58,59 @@ namespace Helper.Messaging.Client
                     var _connection = ConnectionFactory.CreateConnection();
                     _connection.Start();
 
-                    _taskSource.Task.ContinueWith(_t => 
-                    {
-                        if (_t.IsCompleted)
-                        {
-                            if (_connection != null && !_connection.IsClosed)
-                                _connection.Close();
-                        }
-                    });
-
                     // non-transacted session
                     var _session = _connection.CreateSession(false, _ackMode);
-                    var _destination = _lookup.LookupDestination(publishQueue); // _session.CreateQueue(publishQueue); // handle topic
+                    //var _destination = _lookup.IsQueue(publishLocation) ? _session.CreateQueue(publishLocation) as Destination : _session.CreateTopic(publishLocation) as Destination;
+                    var _destination = _lookup.LookupDestination(publishLocation);
+                    var _replyToDestination = string.IsNullOrWhiteSpace(replyToLocation) ? null : _lookup.LookupDestination(replyToLocation);
 
                     // create the message producer -- TODO set some of producer properties
                     var _producer = _session.CreateProducer(null);
-                    _producer.MsgDeliveryMode = MessageDeliveryMode.ReliableDelivery;
-                    _producer.DeliveryMode = DeliveryMode.RELIABLE_DELIVERY;
+                    //_producer.MsgDeliveryMode = _deliveryMode;
+                    //_producer.Priority = _priority;
 
                     // message
-                    var _mesg = _session.CreateTextMessage(message);
-                    if (!string.IsNullOrWhiteSpace(replyToQueue))
-                        _mesg.ReplyTo = _lookup.LookupDestination(replyToQueue);  //_session.CreateQueue(replyToQueue);
-                    _producer.Send(_destination, _mesg);
+                    messages.AsParallel().FirstOrDefault(_x => 
+                        {
+                            var _m = _session.CreateTextMessage(_x);
+                            if (_replyToDestination != null)
+                                _m.ReplyTo = _replyToDestination;
+                            if (!string.IsNullOrWhiteSpace(clientID))
+                                _m.SetStringProperty(CLIENT_ID_NAME, clientID);
 
-                    _taskSource.TrySetResult(true);
+                            _producer.Send(_destination, _m, _deliveryMode, priority, timeToLive);
+
+                            return false; 
+                        });
+
+                    // cleanup
+                    //_producer.Close();
+                    //_session.Close();
+                    _connection.Close();
+
+                    // return 
+                    return true;
                 }
                 catch (Exception ex)
                 {
-                    _taskSource.TrySetException(ex);
+                    //_taskSource.TrySetException(ex);
+                    return false;
                 }
             }).ContinueWith(_t =>
             {
                 if (_t.Status.Equals(TaskStatus.Faulted) || _t.Status.Equals(TaskStatus.Canceled))
-                    _taskSource.SetResult(false);
+                    //_taskSource.SetResult(false);
+                    return false;
+                else
+                    return _t.Result;
             });
 
-            return _taskSource.Task;
+            return await _task;
         }
         # endregion
 
         # region Subscribe
-        protected override object HandleSubscribeMessage(string subscribeQueue, bool autoAck = false, bool durable = true)
+        protected override object HandleSubscribeMessage(string subscribeLocation, string clientID = null, bool autoAck = true, int depth = 1)
         {
             object _uniqueID = null;
             try
@@ -119,15 +129,13 @@ namespace Helper.Messaging.Client
                 CurrentConsumerSessions.TryAdd(_session.SessID, _session);
 
                 // consumer
-                var _destination = _session.CreateTopic(subscribeQueue);
-                //var _destination = _lookup.LookupDestination(subscribeQueue);  // handle topic
-                var _consumer = _session.CreateConsumer(_destination);
+                var _destination = _lookup.LookupDestination(subscribeLocation);
+                var _consumer = string.IsNullOrWhiteSpace(clientID) ? _session.CreateConsumer(_destination) : _session.CreateConsumer(_destination, string.Format("{0}='{1}'", CLIENT_ID_NAME, clientID));
                 
                 // message listener
-                _consumer.MessageHandler += (_o, _m) => { 
-                    
+                _consumer.MessageHandler += (_o, _m) => {
                     this.IncomingMessageBuffer.Add(Tuple.Create(_m.Message.Destination.ToString(),  _m.Message.ToString()));
-                    Console.WriteLine(_m.Message);
+                    //Console.WriteLine(_m.Message);
                     _m.Message.Acknowledge();
                 };
             }
@@ -155,6 +163,28 @@ namespace Helper.Messaging.Client
             catch (Exception ex)
             {
             }
+        }
+        # endregion
+
+        # region Lookup
+        protected override bool ExistsDestination(string destination, bool createTemp = false)
+        {
+            return _lookup.LookupDestination(destination) != null;
+        }
+
+        protected override bool IsQueue(string queueName)
+        {
+            return _lookup.IsQueue(queueName);
+        }
+
+        protected override bool IsTopic(string topicName)
+        {
+            return _lookup.IsTopic(topicName);
+        }
+
+        protected override string ProviderDestinationName(string destination)
+        {
+            return _lookup.LookupDestination(destination).ToString();
         }
         # endregion
 

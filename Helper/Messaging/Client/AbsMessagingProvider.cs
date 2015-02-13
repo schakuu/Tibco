@@ -10,6 +10,7 @@ namespace Helper.Messaging.Client
     public abstract class AbsMessagingProvider : IMessagingProvider, IDisposable
     {
         # region Public Properties
+        public const long DEFAULT_TIME_TO_LIVE = 60000L;
         # endregion
 
         # region Private Properties
@@ -50,42 +51,73 @@ namespace Helper.Messaging.Client
         # endregion
 
         # region Publish methods
-        public Task<bool> PublishMessage(string publishQueue, string replyToQueue, string message)
+        public Task<bool> Publish<T>(string publishLocation, string replyToLocation, IEnumerable<T> payload, string clientID = null, bool autoAck = true, bool durable = false)
         {
+            var _autoAckMode = autoAck;
+            var _durableMode = durable;
+            var _priority = 4;
+            var _timeToLive = DEFAULT_TIME_TO_LIVE;
+
             // validate the publish queue
+            if (string.IsNullOrWhiteSpace(publishLocation))
+                throw new Exception("Publish location is not specified");
+
+            if (!ExistsDestination(publishLocation))
+                throw new Exception(string.Format("Publish location [{0}] does not exist", publishLocation));
+
+            if (IsTopic(publishLocation))
+            {
+                // acks should be always automatic when publishing to a topic
+                _autoAckMode = true;
+
+                // messages should not be durable when publishing to Topic
+                _durableMode = false;
+            }
 
             // validate the reply queue
+            if (!string.IsNullOrWhiteSpace(replyToLocation) && !ExistsDestination(replyToLocation))
+                throw new Exception(string.Format("Reply location [{0}] does not exist", replyToLocation));
 
-            var _task = HandlePublishMessage(publishQueue, replyToQueue, message);
+            var _task = HandlePublishMessage(publishLocation, replyToLocation, payload.Select(_x => _x.ToString()), clientID, _autoAckMode, _durableMode, _priority, _timeToLive);
 
             return _task;
         }
         # endregion
 
         # region Subscribe methods
-        public SubscriptionHandle SubscribeMessage(string subscribeQueue, CallbackDelegate callbackMethod)
+        public SubscriptionHandle Subscribe(string subscribeLocation, CallbackDelegate callbackMethod, string clientID = null, bool autoAck = true, int depth = 1)
         {
-            // validate the subscribe queue
+            var _autoAckMode = autoAck;
+
+            // validate the subscribe location
+            if (string.IsNullOrWhiteSpace(subscribeLocation))
+                throw new Exception("Subscribe location is not specified");
+
+            if (!ExistsDestination(subscribeLocation))
+                throw new Exception(string.Format("Subscribe location [{0}] does not exist", subscribeLocation));
+
+            if (IsTopic(subscribeLocation))
+                _autoAckMode = true;
 
             // create the Subscription Handle
             var _handle = new SubscriptionHandle();
-            _handle.SubscribedToQueue = subscribeQueue;
+            _handle.SubscribedToQueue = subscribeLocation;
             
             // put the callback in a dictionary
-            CallbackHandlers.AddOrUpdate(subscribeQueue, callbackMethod, (_, __) => callbackMethod);
+            CallbackHandlers.AddOrUpdate(ProviderDestinationName(subscribeLocation), callbackMethod, (_, __) => callbackMethod);
 
             // create the subscription 
-            _handle.Handle = HandleSubscribeMessage(subscribeQueue);
+            _handle.Handle = HandleSubscribeMessage(subscribeLocation, clientID,  _autoAckMode, depth);
 
             return _handle;
         }
 
-        public SubscriptionHandle SubscribeMessage<T>(string subscribeQueue, CallbackDelegate callbackMethod)
+        public SubscriptionHandle Subscribe<T>(string subscribeLocation, CallbackDelegate callbackMethod)
         {
             throw new NotImplementedException();
         }
 
-        public SubscriptionHandle SubscribeMessage<T>(string subscribeQueue, CallbackDelegate callbackMethod, Predicate<T> messageSelector)
+        public SubscriptionHandle Subscribe<T>(string subscribeLocation, CallbackDelegate callbackMethod, Predicate<T> messageSelector)
         {
             throw new NotImplementedException();
         }
@@ -99,10 +131,14 @@ namespace Helper.Messaging.Client
         # region Abstract Methods implementation in providers
         protected abstract void InitProvider();
 
-        protected abstract Task<bool> HandlePublishMessage(string publishQueue, string replyToQueue, string message, bool autoAck = false);
-        protected abstract object HandleSubscribeMessage(string subscribeQueue, bool autoAck = false, bool durable = true);
+        protected abstract Task<bool> HandlePublishMessage(string publishQueue, string replyToQueue, IEnumerable<string> messages, string clientID = null, bool autoAck = true, bool durable = false, int priority = 4, long timeToLive = 0);
+        protected abstract object HandleSubscribeMessage(string subscribeQueue, string clientID = null, bool autoAck = true, int depth = 1);
         protected abstract void HandleUnsubscribe(object providerHandle);
         protected abstract void HandleDispose();
+        protected abstract bool ExistsDestination(string destination, bool createTemp = false);
+        protected abstract bool IsQueue(string queueName);
+        protected abstract bool IsTopic(string topicName);
+        protected abstract string ProviderDestinationName(string destination);
         # endregion
 
         # region Disposable

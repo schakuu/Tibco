@@ -46,7 +46,7 @@ namespace Helper.Messaging.Client
         # endregion
 
         # region Publish
-        protected override Task<bool> HandlePublishMessage(string publishQueue, string replyToQueue, string message, bool autoAck = false)
+        protected override Task<bool> HandlePublishMessage(string publishLocation, string replyToLocation, IEnumerable<string> message, string clientID = null, bool autoAck = false, bool durable = true, int priority = 0, long timeToLive = 0)
         {
             var _taskSource = new TaskCompletionSource<bool>();
 
@@ -54,7 +54,7 @@ namespace Helper.Messaging.Client
             {
                 // create the model
                 var _model = PublishConnection.CreateModel();
-                _model.ExchangeDeclare(publishQueue, ExchangeType.Direct);
+                _model.ExchangeDeclare(publishLocation, ExchangeType.Direct);
 
                 // attach some event handlers
                 _model.BasicAcks += (_m, _a) =>
@@ -68,10 +68,10 @@ namespace Helper.Messaging.Client
 
                 // publish
                 var _basicProperties = _model.CreateBasicProperties();
-                _basicProperties.ReplyTo = replyToQueue ?? string.Empty;
+                _basicProperties.ReplyTo = publishLocation ?? string.Empty;
                 _basicProperties.Timestamp = new AmqpTimestamp();
 
-                _model.BasicPublish(publishQueue, null, _basicProperties, Encoding.UTF8.GetBytes(message));
+                _model.BasicPublish(publishLocation, null, _basicProperties, Encoding.UTF8.GetBytes(message.First())); // this is a bug, this should be fixed
             }
             catch (Exception ex)
             {
@@ -83,12 +83,34 @@ namespace Helper.Messaging.Client
         # endregion
 
         # region Subscribe
-        protected override object HandleSubscribeMessage(string subscribeQueue, bool autoAck = false, bool durable = true)
+        protected override object HandleSubscribeMessage(string subscribeQueue, string clientID = null, bool autoAck = false, int depth = 1)
         {
             throw new NotImplementedException();
         }
 
         protected override void HandleUnsubscribe(object providerHandle)
+        {
+            throw new NotImplementedException();
+        }
+        # endregion
+
+        # region Lookup
+        protected override bool ExistsDestination(string destination, bool createTemp = false)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override bool IsQueue(string queueName)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override bool IsTopic(string topicName)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override string ProviderDestinationName(string destination)
         {
             throw new NotImplementedException();
         }
@@ -100,5 +122,6 @@ namespace Helper.Messaging.Client
             throw new NotImplementedException();
         }
         # endregion
+
     }
 }
