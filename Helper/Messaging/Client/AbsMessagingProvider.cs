@@ -112,12 +112,12 @@ namespace Helper.Messaging.Client
             return _handle;
         }
 
-        public SubscriptionHandle Subscribe<T>(string subscribeLocation, CallbackDelegate callbackMethod)
+        public SubscriptionHandle Subscribe<T>(string subscribeLocation, CallbackDelegate<T> callbackMethod)
         {
             throw new NotImplementedException();
         }
 
-        public SubscriptionHandle Subscribe<T>(string subscribeLocation, CallbackDelegate callbackMethod, Predicate<T> messageSelector)
+        public SubscriptionHandle Subscribe<T>(string subscribeLocation, CallbackDelegate<T> callbackMethod, Predicate<T> messageSelector)
         {
             throw new NotImplementedException();
         }

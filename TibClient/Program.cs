@@ -12,34 +12,46 @@ namespace TibClient
     {
         static void Main(string[] args)
         {
-            // test - set some of the properties
+            // test - set some of the properties - DEV
+            //var _properties = new Dictionary<string, string>() 
+            //{ 
+            //    { "assembly", null }, 
+            //    { "class", "Helper.Messaging.Client.TibcoEMSProvider" },
+            //    { "server1", "tcp://icgemsmw01d.nam.nsroot.net:7222,tcp://icgemsmw02d.nam.nsroot.net:7222"},
+            //    { "server", "tcp://icgesbdev.nam.nsroot.net:7222"},
+            //    { "username", "speed_156762"},
+            //    { "password", "speed_156762pwd"},
+            //    { "connectionfactory", "citi.gsm.na.speed_156762.GenericCF"}
+            //};
+
+            // test - set some of the properties - UAT
             var _properties = new Dictionary<string, string>() 
             { 
                 { "assembly", null }, 
                 { "class", "Helper.Messaging.Client.TibcoEMSProvider" },
-                { "server1", "tcp://icgemsmw01d.nam.nsroot.net:7222,tcp://icgemsmw02d.nam.nsroot.net:7222"},
-                { "server", "tcp://icgesbdev.nam.nsroot.net:7222"},
-                { "connectionfactory", "citi.gsm.na.speed_156762.GenericCF"}
+                { "server", "ssl://icgemsmw01u.nam.nsroot.net:7243, ssl://icgemsmw02u.nam.nsroot.net:7243"},
+                { "sslidentity", "speed_156762_uat.p12"},
+                { "sslpassword", "soa123"},
+                { "ssltargethostname", "icgems_tibesb_jndi_certauth_steesb_na_uat"},
+                { "connectionfactory", "citi.gsm.na.speed_156762.GenericCF"},
+                { "username", "speed_156762"},
+                { "password", "speed_156762pwd"}
             };
 
-            Dictionary<string, IDisposable> disposableDict = new Dictionary<string, IDisposable>();
-            disposableDict.Add("browser", new TibBrowser());
-            disposableDict.Add("echo", new TibClientEcho());
-
             if (args[0].Equals("simplepublish", StringComparison.CurrentCultureIgnoreCase))
-                new TibSimplePublish().Publish(_properties, args[1], args[2]);
+                new TibSimplePublish().Publish(_properties, args[1]);
 
             if (args[0].Equals("simpleconsume", StringComparison.CurrentCultureIgnoreCase))
-                new TibSimpleConsume().Consume(_properties, args[1], args[2]);
+                new TibSimpleConsume().Consume(_properties, args[1]);
 
             if (args[0].Equals("echo", StringComparison.CurrentCultureIgnoreCase))
-                new TibClientEcho().Echo();
+                new TibClientEcho().Echo(_properties, args[1]);
 
             if (args[0].Equals("pubsub", StringComparison.CurrentCultureIgnoreCase))
-                new TibPublishSubscribe().Start();
+                new TibPublishSubscribe().Start(_properties, args[1], args[2]);
 
             if (args[0].Equals("lookup", StringComparison.CurrentCultureIgnoreCase))
-                new TibLookup().Lookup();
+                new TibLookup().Lookup(_properties, args[1]);
 
             if (args[0].Equals("browser", StringComparison.CurrentCultureIgnoreCase))
                 new TibBrowser().Browse();

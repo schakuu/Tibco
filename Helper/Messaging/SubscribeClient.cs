@@ -12,7 +12,8 @@ using Helper.Messaging.Client;
 namespace Helper.Messaging
 {
     // callback delegate
-    public delegate void CallbackDelegate(string sentToQueue, string message);
+    public delegate void CallbackDelegate(string sentToLocation, string message);
+    public delegate void CallbackDelegate<T>(string sentToLocation, T message);
 
     public class SubscribeClient : AbsPubSubClient
     {
@@ -41,4 +42,34 @@ namespace Helper.Messaging
         }
         # endregion
     }
+
+    public class SubscribeClient<T> : AbsPubSubClient
+    {
+        # region Public Properties
+        public IMessagingProvider MessagingProvider { get; private set; }
+        # endregion
+
+        # region Constructor
+        public SubscribeClient(XElement _configElement, ILog _logger)
+        {
+        }
+        public SubscribeClient(IMessagingProvider _provider, ILog _logger)
+        {
+            MessagingProvider = _provider;
+        }
+        # endregion
+
+        # region Subscription Methods
+        public SubscriptionHandle SubscribeMessage(string subscribeQueue, CallbackDelegate<T> callbackMethod, string clientID = null, bool autoAck = false, int depth = 1)
+        {
+            return MessagingProvider.Subscribe<T>(subscribeQueue, callbackMethod /*, clientID, autoAck, depth*/);
+        }
+        public void Unsubscribe(SubscriptionHandle handle)
+        {
+            MessagingProvider.Unsubscribe(handle);
+        }
+
+        # endregion
+    }
+
 }

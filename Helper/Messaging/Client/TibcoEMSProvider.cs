@@ -16,7 +16,7 @@ namespace Helper.Messaging.Client
         # region Private Properties
         private static string CLIENT_ID_NAME = "CLIENT_ID";
         private string _connectionFactoryName;
-        private string _server;
+        private IDictionary<string, string> _configProperties;
         private TibcoEMSLookup _lookup;
         ConnectionFactory ConnectionFactory { get; set; }
         ConcurrentDictionary<long, Session> CurrentConsumerSessions = new ConcurrentDictionary<long, Session>();
@@ -25,8 +25,8 @@ namespace Helper.Messaging.Client
         # region Constructor
         public TibcoEMSProvider(IDictionary<string, string> configProperties)
         {
+            _configProperties = configProperties;
             _connectionFactoryName = configProperties["connectionfactory"];
-            _server = configProperties["server"];
             _lookup = new TibcoEMSLookup(configProperties);
         }
         public TibcoEMSProvider(XElement configElement)
@@ -39,7 +39,21 @@ namespace Helper.Messaging.Client
         protected override void InitProvider()
         {
             ConnectionFactory = _lookup.LookupConnectionFactory(_connectionFactoryName);
-            //ConnectionFactory = new ConnectionFactory(_server);
+        }
+
+        protected Connection InitConnection()
+        {
+            string _sslidentity;
+            if (_configProperties.TryGetValue("sslidentity", out _sslidentity))
+            {
+                ConnectionFactory.SetTargetHostName(_configProperties["ssltargethostname"]);
+                // create connection
+                var _fileStoreInfo = ConnectionFactory.GetCertificateStore() as EMSSSLFileStoreInfo;
+                _fileStoreInfo.SetSSLClientIdentity(_configProperties["sslidentity"]);
+                _fileStoreInfo.SetSSLPassword(_configProperties["sslpassword"].ToCharArray());
+            }
+
+            return ConnectionFactory.CreateConnection();
         }
         # endregion
 
@@ -55,7 +69,7 @@ namespace Helper.Messaging.Client
                 try
                 {
                     // connection
-                    var _connection = ConnectionFactory.CreateConnection();
+                    var _connection = InitConnection();
                     _connection.Start();
 
                     // non-transacted session
@@ -118,7 +132,7 @@ namespace Helper.Messaging.Client
                 SessionMode _ackMode = autoAck ? SessionMode.AutoAcknowledge : SessionMode.ExplicitClientAcknowledge;
 
                 // connection
-                var _connection = ConnectionFactory.CreateConnection();
+                var _connection = InitConnection();
                 // start
                 _connection.Start();
 
@@ -203,6 +217,21 @@ namespace Helper.Messaging.Client
         internal TibcoEMSLookup(IDictionary<string, string> configProperties)
         {
             _environment.Add(LookupContext.PROVIDER_URL, configProperties["server"]);
+
+            string _sslidentity;
+            if (configProperties.TryGetValue("sslidentity", out _sslidentity))
+            {
+                // using SSL
+                EMSSSLFileStoreInfo _info = new EMSSSLFileStoreInfo();
+                _info.SetSSLClientIdentity(_sslidentity);
+                _info.SetSSLPassword(configProperties["sslpassword"].ToCharArray());
+
+                // enter into the environment
+                _environment.Add(LookupContext.SSL_STORE_INFO, _info);
+                _environment.Add(LookupContext.SSL_STORE_TYPE, EMSSSLStoreType.EMSSSL_STORE_TYPE_FILE);
+                _environment.Add(LookupContext.SECURITY_PROTOCOL, "ssl");
+                _environment.Add(LookupContext.SSL_TARGET_HOST_NAME, configProperties["ssltargethostname"]);
+            }
         }
 
         internal TibcoEMSLookup(XElement configElement)

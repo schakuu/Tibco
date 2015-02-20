@@ -18,8 +18,8 @@ namespace Helper.Messaging.Client
 
         // subscribe
         SubscriptionHandle Subscribe(string subscribeLocation, CallbackDelegate callbackMethod, string clientID = null, bool autoAck = true, int depth = 1);
-        SubscriptionHandle Subscribe<T>(string subscribeLocation, CallbackDelegate callbackMethod);
-        SubscriptionHandle Subscribe<T>(string subscribeLocation, CallbackDelegate callbackMethod, Predicate<T> messageSelector);
+        SubscriptionHandle Subscribe<T>(string subscribeLocation, CallbackDelegate<T> callbackMethod);
+        SubscriptionHandle Subscribe<T>(string subscribeLocation, CallbackDelegate<T> callbackMethod, Predicate<T> messageSelector);
         void Unsubscribe(SubscriptionHandle handle);
     }
 }
